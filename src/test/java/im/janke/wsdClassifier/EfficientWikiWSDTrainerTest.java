@@ -43,31 +43,7 @@ public class EfficientWikiWSDTrainerTest {
     }
 
     private static ArrayList<Attribute> createAttributes() {
-        ArrayList<Attribute> attributes = new ArrayList<>();
-
-        // Declare the class attribute (as string attribute)
-        attributes.add(new Attribute("wordSense", true));
-
-        // Declare the feature vector
-        attributes.add(new Attribute("actualWord", true));
-        attributes.add(new Attribute("actualWordPOS", true));
-        attributes.add(new Attribute("word-3", true));
-        attributes.add(new Attribute("word-3POS", true));
-        attributes.add(new Attribute("word-2", true));
-        attributes.add(new Attribute("word-2POS", true));
-        attributes.add(new Attribute("word-1", true));
-        attributes.add(new Attribute("word-1POS", true));
-        attributes.add(new Attribute("word+1", true));
-        attributes.add(new Attribute("word+1POS", true));
-        attributes.add(new Attribute("word+2", true));
-        attributes.add(new Attribute("word+2POS", true));
-        attributes.add(new Attribute("word+3", true));
-        attributes.add(new Attribute("word+3POS", true));
-        attributes.add(new Attribute("leftNN", true));
-        attributes.add(new Attribute("leftVB", true));
-        attributes.add(new Attribute("rightNN", true));
-        attributes.add(new Attribute("rightVB", true));
-        return attributes;
+        return ClassifierService.getAttributes();
     }
 
     private void testClassificator(Instances instances) {
@@ -94,11 +70,6 @@ public class EfficientWikiWSDTrainerTest {
             String corr = instance.classAttribute()
                                   .value((int) instance.classValue());
 
-            if (!test.equals(base)) {
-                Classification[] top3test = classifierEfficient.classifyInstanceTop3(instance);
-                Classification[] top3base = classifierBase.classifyInstanceTop3(instance);
-                System.out.println("OH no!");
-            }
             Assert.assertEquals("Different classification for instance " + i + "! Correct was " + corr + ".", base,
                     test);
         }
@@ -127,14 +98,6 @@ public class EfficientWikiWSDTrainerTest {
         ArrayList<Attribute> attributes = createAttributes();
         int numClasses = 10;
         Instances instances = createTestInstances(attributes, numClasses);
-
-        // TODO: repair EfficientTrainer to pass this test!
-        // Findings:
-        // * works, when laPlace for the SparseDiscreteEstimator is set to false instead of true
-        // * the probability for the classification is really low, maybe thats the problem
-        // * if max_diff_attributes is increased, the test does not fail
-        // * maybe it is possible, that the base classifier fails
-        // * maybe the calculation of the percentages is not 100% correct
 
         testClassificator(instances);
     }

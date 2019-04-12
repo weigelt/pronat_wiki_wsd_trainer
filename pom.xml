@@ -8,6 +8,19 @@
 	</parent>
 	<artifactId>wikiWSDTrainer</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	
+	<repositories>
+	    <repository>
+	      <id>ipdNexus-releases</id>
+	      <name>IPD-Repository</name>
+	      <url>http://bob.ipd.kit.edu/nexus/repository/maven-public-releases</url>
+	    </repository>
+	    <repository>
+	      <id>ipdNexus-snapshots</id>
+	      <name>IPD-Repository</name>
+	      <url>http://bob.ipd.kit.edu/nexus/repository/maven-public-snapshots</url>
+	    </repository>
+    </repositories>
 
 	<properties>
 		<mainclass>edu.kit.ipd.parse.wikiWSDTrainer.App</mainclass>
