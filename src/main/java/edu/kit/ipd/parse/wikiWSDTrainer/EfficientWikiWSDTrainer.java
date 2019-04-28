@@ -1,7 +1,4 @@
-/**
- *
- */
-package im.janke.wsdClassifier;
+package edu.kit.ipd.parse.wikiWSDTrainer;
 
 import java.io.File;
 import java.util.Optional;
@@ -9,6 +6,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import edu.kit.ipd.parse.wikiWSDClassifier.EfficientNaiveBayes;
 import weka.classifiers.Classifier;
 import weka.classifiers.evaluation.Evaluation;
 import weka.core.Instance;

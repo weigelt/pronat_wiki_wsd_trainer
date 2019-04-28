@@ -1,4 +1,4 @@
-package im.janke.wsdClassifier;
+package edu.kit.ipd.parse.wikiWSDTrainer;
 
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +53,7 @@ public class EfficientEvaluation extends Evaluation {
         for (int i = 0; i < numFolds; i++) {
             EfficientEvaluation.logger.info("Processing fold " + i);
             Instances train = data.trainCV(numFolds, i, random);
-            this.setPriors(train);
+            setPriors(train);
             Classifier copiedClassifier = AbstractClassifier.makeCopy(classifier);
             EfficientEvaluation.logger.info(
                     "Building classifier for fold " + i + " with " + train.size() + " instances.");

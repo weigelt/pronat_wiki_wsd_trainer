@@ -6,6 +6,11 @@ import java.util.Random;
 import org.junit.Assert;
 import org.junit.Test;
 
+import edu.kit.ipd.parse.wikiWSDClassifier.Classification;
+import edu.kit.ipd.parse.wikiWSDClassifier.ClassifierService;
+import edu.kit.ipd.parse.wikiWSDTrainer.EfficientWikiWSDTrainer;
+import edu.kit.ipd.parse.wikiWSDTrainer.Trainer;
+import edu.kit.ipd.parse.wikiWSDTrainer.WikiWSDTrainer;
 import weka.classifiers.bayes.NaiveBayes;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
@@ -78,7 +83,7 @@ public class EfficientWikiWSDTrainerTest {
     /**
      * Tests if the efficient Trainer classifies the same as the original trainer. They are tested on a set of training
      * data with many classes (LIMIT / 4).
-     * 
+     *
      */
     @Test
     public void testClassificator_highClassCount() {

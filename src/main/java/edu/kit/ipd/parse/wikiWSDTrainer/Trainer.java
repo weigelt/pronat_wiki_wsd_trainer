@@ -1,4 +1,4 @@
-package im.janke.wsdClassifier;
+package edu.kit.ipd.parse.wikiWSDTrainer;
 
 import java.io.File;
 import java.io.IOException;
@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.logging.Logger;
 
-import edu.kit.ipd.parse.wikiWSDTrainer.RandomNullPointerException;
+import edu.kit.ipd.parse.wikiWSDClassifier.FilteredClassifierUpdateable;
 import weka.classifiers.Classifier;
 import weka.classifiers.UpdateableClassifier;
 import weka.classifiers.evaluation.Evaluation;

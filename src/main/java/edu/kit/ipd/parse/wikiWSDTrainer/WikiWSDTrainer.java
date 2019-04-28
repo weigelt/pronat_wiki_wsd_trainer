@@ -1,7 +1,4 @@
-/**
- *
- */
-package im.janke.wsdClassifier;
+package edu.kit.ipd.parse.wikiWSDTrainer;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -16,6 +13,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import edu.kit.ipd.parse.wikiWSDClassifier.ClassifierService;
 import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
@@ -156,10 +154,10 @@ public class WikiWSDTrainer extends Trainer {
                 }
 
                 // get left and right 3 words along with their POS
-                this.addSurroundingWordsAttributes(tokens, index, instance);
+                addSurroundingWordsAttributes(tokens, index, instance);
 
                 // add next and previous NN* and VB*
-                this.addLeftAndRightNounsAndVerbs(tokens, index, instance);
+                addLeftAndRightNounsAndVerbs(tokens, index, instance);
 
                 // // add most frequent words
                 // for (int i = 0; i < 3; i++) {
