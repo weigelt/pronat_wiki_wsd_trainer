@@ -36,6 +36,9 @@ import weka.core.Stopwords;
  *
  */
 public class WikiWSDTrainer extends Trainer {
+    private static final String NN = "NN";
+    private static final String REGEX_NAMEDENTITY = "^[\\p{Ll}].*";
+    private static final String EMPTYSTRING = "";
     private StanfordCoreNLP pipeline;
     private Pattern pattern;
 
@@ -85,9 +88,8 @@ public class WikiWSDTrainer extends Trainer {
         // prepare sentences and get the actual disambiguations
         Matcher matcher = pattern.matcher(line);
 
-        // make a queue, this way we get the correct order in processing take
-        // out one meaning
-        // out of the queue, this way the correct meaning is taken
+        // make a queue, this way we get the correct order in processing take out one meaning out of the queue, this
+        // way the correct meaning is taken
         // key=word, value=Queue<meaning>
         Map<String, ArrayDeque<String>> disambiguations = getDisambiguationMap(matcher);
         if (disambiguations.isEmpty()) {
@@ -121,12 +123,12 @@ public class WikiWSDTrainer extends Trainer {
                     continue;
                 }
                 String wordPos = token.get(PartOfSpeechAnnotation.class);
-                String meaning = disambiguations.get(word.toLowerCase())
-                                                .poll();
-                if (meaning == null) {
+                ArrayDeque<String> wordDisamDeque = disambiguations.get(word.toLowerCase());
+                String meaning = null;
+                if (wordDisamDeque == null) {
                     // first possibility: word is part of multi-word; treat like
                     // above
-                    if (wordPos.startsWith("NN")) {
+                    if (wordPos.startsWith(NN)) {
                         for (String disambiguationPhrase : wordSet) {
                             if (disambiguationPhrase.contains(word.toLowerCase())) {
                                 meaning = disambiguations.get(disambiguationPhrase)
@@ -134,14 +136,17 @@ public class WikiWSDTrainer extends Trainer {
                             }
                         }
                     }
-                    // check again; skip this index if still null
-                    if (meaning == null) {
-                        continue;
-                    }
+                } else {
+                    meaning = wordDisamDeque.poll();
+                }
+
+                // check again; skip this index if still null
+                if (meaning == null) {
+                    continue;
                 }
 
                 // skip NamedEntities
-                if (!word.matches("^[\\p{Ll}].*")) {
+                if (!word.matches(REGEX_NAMEDENTITY)) {
                     // does not start with a lowercase letter
                     // -> starts with an upper case (or number)
                     continue;
@@ -189,19 +194,22 @@ public class WikiWSDTrainer extends Trainer {
      * @return Mapping of Disambiguation to list of representations for that disambiguation in order of their appearance
      *         within the text.
      */
-    private Map<String, ArrayDeque<String>> getDisambiguationMap(Matcher matcher) {
+    private Map<String, ArrayDeque<String>> getDisambiguationMap(final Matcher matcher) {
         Map<String, ArrayDeque<String>> disambiguations = new HashMap<>();
+        String numberRegex = "^[\\d]+.*";
+        String regexOr = "|";
         while (matcher.find()) {
             // toLowerCase "accidentally" also removes NamedEntities (when
             // written with capital
             // letter in beginning
             String word = matcher.group(2)
                                  .toLowerCase();
+
             String meaning = (matcher.group(1) == null) ? word
                     : matcher.group(1)
-                             .replace("|", "")
+                             .replace(regexOr, EMPTYSTRING)
                              .toLowerCase();
-            if (meaning.matches("^[\\d]+.*")) {
+            if (meaning.matches(numberRegex)) {
                 // numbers only (e.g. for years) will be omitted
                 // also omit smth like "2004 afl championship"
                 continue;
@@ -242,7 +250,7 @@ public class WikiWSDTrainer extends Trainer {
                 // for multi-word-stuff
                 String wordPos = token.get(PartOfSpeechAnnotation.class);
                 // we focus primarily on nouns!
-                if (wordPos.startsWith("NN")) {
+                if (wordPos.startsWith(NN)) {
                     // TODO: make this better!
                     Set<String> wordSetCopy = new HashSet<>(wordSet);
                     outer: for (String disambiguationPhrase : wordSetCopy) {
@@ -260,7 +268,7 @@ public class WikiWSDTrainer extends Trainer {
                                 if (disambiguationPhrase.contains(tmpWord.toLowerCase())) {
                                     if (tmpPos.equals("IN") || tmpPos.equals("TO")) {
                                         takeFirst = true;
-                                    } else if (takeFirst && tmpPos.startsWith("NN")) {
+                                    } else if (takeFirst && tmpPos.startsWith(NN)) {
                                         senseIndex = index;
                                     }
                                     index--;
@@ -395,7 +403,7 @@ public class WikiWSDTrainer extends Trainer {
             if (leftIndex >= 0) {
                 CoreLabel leftToken = tokens.get(leftIndex);
                 String leftPOS = leftToken.get(PartOfSpeechAnnotation.class);
-                if (leftNN.equals("NONE") && leftPOS.startsWith("NN")) {
+                if (leftNN.equals("NONE") && leftPOS.startsWith(NN)) {
                     // we found left NN*
                     leftNN = leftToken.get(LemmaAnnotation.class);
                     leftNN = ((leftNN != null) && !leftNN.startsWith("#")) ? leftNN.toLowerCase() : "NONE";
@@ -416,7 +424,7 @@ public class WikiWSDTrainer extends Trainer {
             if (rightIndex < tokens.size()) {
                 CoreLabel rightToken = tokens.get(rightIndex);
                 String rightPOS = rightToken.get(PartOfSpeechAnnotation.class);
-                if (rightNN.equals("NONE") && rightPOS.startsWith("NN")) {
+                if (rightNN.equals("NONE") && rightPOS.startsWith(NN)) {
                     // we found right NN*
                     rightNN = rightToken.get(LemmaAnnotation.class);
                     rightNN = ((rightNN != null) && !rightNN.startsWith("#")) ? rightNN.toLowerCase() : "NONE";
@@ -513,7 +521,7 @@ public class WikiWSDTrainer extends Trainer {
         case "NNS":
         case "NNP":
         case "NNPS":
-            return "NN";
+            return NN;
         case "PRP$":
             return "PRP";
         case "RBR":

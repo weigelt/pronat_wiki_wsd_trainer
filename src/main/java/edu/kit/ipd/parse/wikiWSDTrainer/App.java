@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -58,13 +57,13 @@ public class App {
 
     // program arguments
     @Option(name = "-a", aliases = "--arff", usage = "Save the training data into the provided filename as arff-file(s). Is input arff if -d is set.")
-    private final String arffFileName = null;
+    private String arffFileName = null;
     @Option(name = "-c", aliases = "--classifier", usage = "Specify the Classifier that will be used.")
-    private final ClassifierMethod classifierMethod = ClassifierMethod.EfficientNaiveBayes;
+    private ClassifierMethod classifierMethod = ClassifierMethod.EfficientNaiveBayes;
     @Option(name = "-d", aliases = "--data-provided", usage = "Use the provided arff file as input data.")
-    private final boolean arffInput = false;
+    private boolean arffInput = false;
     @Option(name = "-e", aliases = "--evaluate", usage = "Evaluate the classifier after building it")
-    private final boolean evalClassifier = false;
+    private boolean evalClassifier = false;
     @Option(name = "-f", aliases = "--fly-over", usage = "Skip the first X files, where X is the provided value.")
     private long skipFirst = -1;
     @Option(name = "-i", aliases = "--input", usage = "Root Directory the input data files lie in.")
@@ -74,11 +73,11 @@ public class App {
     @Option(name = "-o", aliases = "--output", usage = "Output Directory. The resulting file will be named after the classifier or the name specified with -n.", required = true)
     private String outputDirectory;
     @Option(name = "-s", aliases = "--split", usage = "Split arff-output into parts, each consisting of the provided amount of articles.")
-    private final int splitValue = -1;
+    private int splitValue = -1;
     @Option(name = "-w", aliases = "--waste-memory", usage = "Do not compress the output (because memory is cheap nowadays).")
-    private final boolean wasteMemory = false;
+    private boolean wasteMemory = false;
     @Option(name = "-r", aliases = "--remove-unique", usage = "Remove unique instances before building the classifier.")
-    private final boolean removeUnique = false;
+    private boolean removeUnique = false;
 
     private Trainer trainer;
     private int counter = 0;
@@ -227,69 +226,23 @@ public class App {
      * @throws IllegalArgumentException
      *             when provided file is not a directory
      */
+    // NOTICE: Might be dangerous if a high splitValue is set and files
+    // are big, because there might be problems with heap space.
     private void startProcessing(File dir) throws IllegalArgumentException {
         if (!dir.isDirectory()) {
             throw new IllegalArgumentException("Provided File muts be a directory!");
         }
-        // Executor for multithreading
-        ExecutorService executor = Executors.newWorkStealingPool();
-        // NOTICE: Might be dangerous if a high splitValue is set and files
-        // are big, because there might be problems with heap space.
-        List<Callable<Void>> runners = new ArrayList<>();
+
+        TrainingDataVisitor trainingDataVisitor = new TrainingDataVisitor();
         try {
-            Files.walkFileTree(dir.toPath(), new SimpleFileVisitor<>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    if (attrs.isRegularFile()) {
-                        counter++;
-                        // first X files should be skipped
-                        if (skipFirst > 0) {
-                            skipFirst--;
-                            if (counter >= splitValue) {
-                                counter = 0;
-                                fileCounter += 1;
-                                App.logger.info("Skipping files. File counter increased to " + fileCounter);
-                            }
-                            return FileVisitResult.CONTINUE;
-                        }
-                        // process the actual files
-                        try (Stream<String> stream = Files.lines(file)) {
-                            List<String> lines = stream.filter(line -> line != null)
-                                                       .collect(Collectors.toList());
-                            for (String line : lines) {
-                                runners.add(() -> {
-                                    trainer.addTrainingData(line);
-                                    return null;
-                                });
-                            }
-                        } catch (IOException e) {
-                            App.logger.warning(e.toString());
-                        }
-                        if ((splitValue > 0) && (counter >= splitValue)) {
-                            try {
-                                executor.invokeAll(runners);
-                                runners.clear();
-                            } catch (InterruptedException e) {
-                                App.logger.warning(e.toString());
-                                e.printStackTrace();
-                            }
-                            saveTrainingData(true);
-                            counter = 0;
-                        }
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e1) {
-            e1.printStackTrace();
+            Files.walkFileTree(dir.toPath(), trainingDataVisitor);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         try {
-            // make sure all runners are done
-            executor.invokeAll(runners);
-            runners.clear();
             // shutdown and wait until jobs are done and termination is done
-            executor.shutdown();
-            executor.awaitTermination(30, TimeUnit.MINUTES);
+            trainingDataVisitor.executor.shutdown();
+            trainingDataVisitor.executor.awaitTermination(60, TimeUnit.MINUTES);
         } catch (InterruptedException | SecurityException e) {
             App.logger.warning(e.toString());
         }
@@ -298,6 +251,63 @@ public class App {
             saveTrainingData(true);
         } else if (arffFileName != null) {
             saveTrainingData(false);
+        }
+    }
+
+    private class TrainingDataVisitor extends SimpleFileVisitor<Path> {
+        ExecutorService executor = Executors.newWorkStealingPool();
+        private int linesPerWorker = getLinesPerWorker();
+        private List<String> lines = new ArrayList<>();
+
+        private int getLinesPerWorker() {
+            int processors = Runtime.getRuntime()
+                                    .availableProcessors();
+            return (int) Math.ceil((double) splitValue / (double) processors);
+        }
+
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+            if (attrs.isRegularFile()) {
+                counter++;
+                // first X files should be skipped
+                if (skipFirst > 0) {
+                    skipFirst--;
+                    if (counter >= splitValue) {
+                        counter = 0;
+                        fileCounter += 1;
+                        App.logger.info("Skipping files. File counter increased to " + fileCounter);
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+                // process the actual files
+
+                try (Stream<String> stream = Files.lines(file)) {
+                    lines.addAll(stream.filter(line -> line != null)
+                                       .collect(Collectors.toList()));
+                } catch (IOException e) {
+                    App.logger.warning(e.toString());
+                }
+
+                if ((splitValue > 0) && ((counter % linesPerWorker) == 0)) {
+                    List<String> currLines = List.copyOf(lines);
+                    executor.execute(() -> trainer.addTrainingData(currLines));
+                    lines = new ArrayList<>();
+                }
+
+                if ((splitValue > 0) && (counter >= splitValue)) {
+                    try {
+                        executor.shutdown();
+                        executor.awaitTermination(10, TimeUnit.MINUTES);
+                    } catch (InterruptedException e) {
+                        App.logger.warning(e.toString());
+                        e.printStackTrace();
+                    }
+                    saveTrainingData(true);
+                    counter = 0;
+                    executor = Executors.newWorkStealingPool();
+                }
+            }
+            return FileVisitResult.CONTINUE;
         }
     }
 

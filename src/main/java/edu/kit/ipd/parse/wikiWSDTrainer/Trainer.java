@@ -94,6 +94,19 @@ public abstract class Trainer {
     public abstract void addTrainingData(String line);
 
     /**
+     * Processes the given lines by calling {@link #addTrainingData(String)} for each one. Adds all found instances to
+     * the training data ({@link #trainingSet}
+     *
+     * @param lines
+     *            Lines that should be processed
+     */
+    public void addTrainingData(List<String> lines) {
+        for (String line : lines) {
+            this.addTrainingData(line);
+        }
+    }
+
+    /**
      * Adds the instances to the training set of this trainer.
      *
      * @param instances
