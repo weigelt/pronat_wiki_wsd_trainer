@@ -5,6 +5,8 @@ import java.util.Random;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import edu.kit.ipd.parse.wikiWSDClassifier.Classification;
 import edu.kit.ipd.parse.wikiWSDClassifier.ClassifierService;
@@ -22,6 +24,7 @@ import weka.core.Instances;
  *
  */
 public class EfficientWikiWSDTrainerTest {
+    private static final Logger logger = LoggerFactory.getLogger(EfficientWikiWSDTrainerTest.class);
 
     private static final int LIMIT = 1024 * 4;
 
@@ -77,6 +80,50 @@ public class EfficientWikiWSDTrainerTest {
 
             Assert.assertEquals("Different classification for instance " + i + "! Correct was " + corr + ".", base,
                     test);
+        }
+    }
+
+    /**
+     * Integration test that trains with the {@link EfficientWikiWSDTrainer} and captures the execution time.
+     */
+    // @Ignore
+    @Test
+    public void testClassificator_miniBenchmarkPerformance() {
+        // create test instances
+        ArrayList<Attribute> attributes = createAttributes();
+        int numClasses = 30_000;
+        int numInstances = 1_000_000;
+        Instances instances = new Instances("WordSenseDisambiguation", attributes, numInstances);
+        instances.setClassIndex(0);
+
+        Random rand = new Random();
+
+        int max_diff_attributes = numInstances / attributes.size();
+        for (int i = 0; i < numInstances; i++) {
+            Instance instance = new DenseInstance(attributes.size());
+            instance.setDataset(instances);
+            // set the class.
+            instance.setValue(0, "" + (i % numClasses));
+            for (int j = 1; j < attributes.size(); j++) {
+                instance.setValue(j, "" + rand.nextInt(max_diff_attributes));
+            }
+            instance.setWeight(2);
+            instances.add(instance);
+        }
+
+        // start training
+        long startTime = System.currentTimeMillis();
+        Trainer efficientTrainer = new EfficientWikiWSDTrainer(instances);
+        efficientTrainer.buildClassifier();
+        long stopTime = System.currentTimeMillis();
+        long elapsedTime = stopTime - startTime;
+
+        if (logger.isInfoEnabled()) {
+            double elapsedTimeInSeconds = elapsedTime / 1000.;
+            logger.info("Training time: " + elapsedTime + " ms (" + elapsedTimeInSeconds + " s)");
+        } else {
+            double elapsedTimeInSeconds = elapsedTime / 1000.;
+            System.out.println("Training time: " + elapsedTime + " ms (" + elapsedTimeInSeconds + " s)");
         }
     }
 
