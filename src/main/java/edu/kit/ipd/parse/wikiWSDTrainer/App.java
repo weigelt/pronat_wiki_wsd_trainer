@@ -35,6 +35,8 @@ import org.kohsuke.args4j.Option;
 
 import edu.kit.ipd.parse.wikiWSDClassifier.ClassifierMethod;
 import edu.kit.ipd.parse.wikiWSDClassifier.ClassifierService;
+import edu.kit.ipd.parse.wikiWSDClassifier.EfficientNaiveBayes;
+import edu.kit.ipd.parse.wikiWSDClassifier.SerializationHelper;
 import weka.classifiers.Classifier;
 import weka.core.Instance;
 import weka.core.Instances;
@@ -58,14 +60,10 @@ public class App {
     // program arguments
     @Option(name = "-a", aliases = "--arff", usage = "Save the training data into the provided filename as arff-file(s). Is input arff if -d is set.")
     private String arffFileName = null;
-    @Option(name = "-c", aliases = "--classifier", usage = "Specify the Classifier that will be used.")
-    private ClassifierMethod classifierMethod = ClassifierMethod.EfficientNaiveBayes;
     @Option(name = "-d", aliases = "--data-provided", usage = "Use the provided arff file as input data.")
     private boolean arffInput = false;
     @Option(name = "-e", aliases = "--evaluate", usage = "Evaluate the classifier after building it")
     private boolean evalClassifier = false;
-    @Option(name = "-f", aliases = "--fly-over", usage = "Skip the first X files, where X is the provided value.")
-    private long skipFirst = -1;
     @Option(name = "-i", aliases = "--input", usage = "Root Directory the input data files lie in.")
     private String input = null;
     @Option(name = "-n", aliases = "--name", usage = "Output Classifier Name. Default is the name of the classifier followed by '.classifier'")
@@ -74,8 +72,6 @@ public class App {
     private String outputDirectory;
     @Option(name = "-s", aliases = "--split", usage = "Split arff-output into parts, each consisting of the provided amount of articles.")
     private int splitValue = -1;
-    @Option(name = "-w", aliases = "--waste-memory", usage = "Do not compress the output (because memory is cheap nowadays).")
-    private boolean wasteMemory = false;
     @Option(name = "-r", aliases = "--remove-unique", usage = "Remove unique instances before building the classifier.")
     private boolean removeUnique = false;
 
@@ -104,44 +100,45 @@ public class App {
     private void start(String[] args) {
         processArguments(args);
         logSetParameters();
+        Classifier classifier = ClassifierMethod.EfficientNaiveBayes.getClassifier();
+        trainer = new EfficientWikiWSDTrainer(classifier);
         // get the files and create or read in the training data
         if (!arffInput) {
-            trainer = new WikiWSDTrainer(classifierMethod.getClassifier());
             File directory = new File(input);
             if (splitValue > 0) {
                 prepareArffSaving();
             }
-            App.logger.info("Start processing input files, saving to arff-file(s) if set.");
+            logger.info("Start processing input files, saving to arff-file(s) if set.");
             startProcessing(directory);
 
             if (splitValue > 0) {
                 Optional<Instances> instances = getInstancesFromArff();
                 if (instances.isPresent()) {
-                    trainer = new WikiWSDTrainer(classifierMethod.getClassifier(), instances.get());
+                    trainer = new EfficientWikiWSDTrainer(classifier, instances.get());
                 }
             }
         } else {
             Optional<Instances> instances = getInstancesFromArff();
             if (instances.isPresent()) {
-                trainer = new WikiWSDTrainer(classifierMethod.getClassifier(), instances.get());
+                trainer = new EfficientWikiWSDTrainer(classifier, instances.get());
             }
         }
         if (!trainer.hasTrainingData()) {
-            App.logger.info("Error! Trainer has no training data! Stopping!");
+            logger.info("Error! Trainer has no training data! Stopping!");
             return;
         }
 
-        if (classifierMethod == ClassifierMethod.EfficientNaiveBayes) {
-            trainer = new EfficientWikiWSDTrainer(trainer.getDataSet());
-        }
+        trainer = new EfficientWikiWSDTrainer(trainer.getDataSet());
+
         // Build classifier and save it
         trainer.setRemoveUnique(removeUnique);
-        Instances originalInstances = new Instances(trainer.getDataSet());
-        App.logger.info(trainer.dataSummaryString());
-        App.logger.info("Starting to filter instances and build the classifier.");
+        Instances instancesHeader = new Instances(trainer.getDataSet(), 0);
+        logger.info(trainer.dataSummaryString());
+        logger.info("Starting to filter instances and build the classifier.");
         trainer.buildClassifier();
-        App.logger.info("Building Classifier finished. Saving it now.");
-        save(trainer, originalInstances);
+
+        logger.info("Building Classifier finished. Saving it now.");
+        save(trainer, instancesHeader);
 
         // Eval
         if (evalClassifier) {
@@ -194,7 +191,7 @@ public class App {
 
             // set output file name
             if (outputFileName == null) {
-                outputFileName = classifierMethod.toString();
+                outputFileName = ClassifierMethod.EfficientNaiveBayes.toString();
             }
 
             // check output directory
@@ -269,18 +266,6 @@ public class App {
         public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
             if (attrs.isRegularFile()) {
                 counter++;
-                // first X files should be skipped
-                if (skipFirst > 0) {
-                    skipFirst--;
-                    if (counter >= splitValue) {
-                        counter = 0;
-                        fileCounter += 1;
-                        App.logger.info("Skipping files. File counter increased to " + fileCounter);
-                    }
-                    return FileVisitResult.CONTINUE;
-                }
-                // process the actual files
-
                 try (Stream<String> stream = Files.lines(file)) {
                     lines.addAll(stream.filter(line -> line != null)
                                        .collect(Collectors.toList()));
@@ -314,16 +299,12 @@ public class App {
     private void logSetParameters() {
         StringBuilder infoBuilder = new StringBuilder("Parameter Info:");
         infoBuilder.append("\n Classifier:\t\t\t")
-                   .append(classifierMethod.toString());
+                   .append(ClassifierMethod.EfficientNaiveBayes.toString());
         infoBuilder.append("\n Output Directory:\t\t")
                    .append(outputDirectory);
         infoBuilder.append("\n Output File Name:\t\t")
                    .append(outputFileName);
 
-        if (skipFirst > 0) {
-            infoBuilder.append("\n Skipping first:\t\t")
-                       .append(skipFirst);
-        }
         if (splitValue > 0) {
             infoBuilder.append("\n Splitting at:\t\t\t")
                        .append(splitValue);
@@ -339,11 +320,6 @@ public class App {
                 infoBuilder.append("\n Arff File:\t\t\t")
                            .append(arffFileName);
             }
-        }
-        if (!wasteMemory) {
-            infoBuilder.append("\n Output is compressed");
-        } else {
-            infoBuilder.append("\n Output is not compressed");
         }
         if (evalClassifier) {
             infoBuilder.append("\n Classifier will be evaluated");
@@ -415,7 +391,7 @@ public class App {
     }
 
     private String getArffExtension() {
-        return (!wasteMemory) ? ArffLoader.FILE_EXTENSION_COMPRESSED : ArffLoader.FILE_EXTENSION;
+        return ArffLoader.FILE_EXTENSION_COMPRESSED;
     }
 
     /**
