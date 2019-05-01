@@ -3,11 +3,8 @@
  */
 package edu.kit.ipd.parse.wikiWSDTrainer;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,8 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -40,10 +35,8 @@ import edu.kit.ipd.parse.wikiWSDClassifier.SerializationHelper;
 import weka.classifiers.Classifier;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.SerializationHelper;
 import weka.core.converters.ArffLoader;
 import weka.core.converters.ConverterUtils.DataSource;
-import weka.filters.Filter;
 
 /**
  * Main class of this WSDTrainer.
@@ -523,55 +516,21 @@ public class App {
 
     /**
      * Save the classifier
-     *
-     *
      */
-    private void save(Trainer trainer, Instances instances) {
-        if (!wasteMemory) {
-            saveZipped(trainer.getClassifier(), trainer.getFilter(), instances);
-        } else {
-            saveUnzipped(trainer.getClassifier(), trainer.getFilter(), instances);
+    private void save(Trainer trainer, Instances instancesHeader) {
+        if (!trainer.getClass()
+                    .equals(EfficientWikiWSDTrainer.class)) {
+            throw new IllegalArgumentException("Invalid Trainer! Only supports saving of EfficientWikiWSDTrainer.");
+        } else if (!trainer.getClassifier()
+                           .getClass()
+                           .equals(EfficientNaiveBayes.class)) {
+            throw new IllegalArgumentException("Invalid Classifier! Only supports saving of EfficientNaiveBayes.");
         }
-    }
-
-    private void saveUnzipped(Classifier classifier, Filter filter, Instances instances) {
         outputFileName = outputDirectory + outputFileName;
-        try {
-            SerializationHelper.write(outputFileName + App.SUFFIX_CLASSIFIER, classifier);
-            SerializationHelper.write(outputFileName + App.SUFFIX_FILTER, filter);
-            Instances header = new Instances(instances, 0);
-            SerializationHelper.write(outputFileName + App.SUFFIX_INSTANCEHEADER, header);
-        } catch (Exception e) {
-            App.logger.warning("ERROR! Exception at saving classifier!");
-            e.printStackTrace();
-        }
-    }
-
-    private void saveZipped(Classifier classifier, Filter filter, Instances instances) {
-        String outputZipFileName = outputDirectory + outputFileName + ".zip";
-        try (FileOutputStream fos = new FileOutputStream(outputZipFileName);
-                BufferedOutputStream bos = new BufferedOutputStream(fos);
-                ZipOutputStream zipOutputStream = new ZipOutputStream(bos)) {
-            zipOutputStream.putNextEntry(new ZipEntry(outputFileName + App.SUFFIX_CLASSIFIER));
-            ObjectOutputStream objectStream = new ObjectOutputStream(zipOutputStream);
-            objectStream.writeObject(classifier);
-            zipOutputStream.closeEntry();
-            zipOutputStream.putNextEntry(new ZipEntry(outputFileName + App.SUFFIX_FILTER));
-            objectStream = new ObjectOutputStream(zipOutputStream);
-            objectStream.writeObject(filter);
-            zipOutputStream.closeEntry();
-            zipOutputStream.putNextEntry(new ZipEntry(outputFileName + App.SUFFIX_INSTANCEHEADER));
-            objectStream = new ObjectOutputStream(zipOutputStream);
-            Instances header = new Instances(instances, 0);
-            objectStream.writeObject(header);
-            zipOutputStream.closeEntry();
-            objectStream.flush();
-            objectStream.close();
-        } catch (SecurityException | IOException e) {
-            App.logger.warning(
-                    "ERROR! Exception at saving classifier zipped!\n" + e.toString() + "\nTry saving unzipped now!");
-            // e.printStackTrace();
-            saveUnzipped(classifier, filter, instances);
-        }
+        SerializationHelper.serializeEfficientNaiveBayesClassifier((EfficientNaiveBayes) trainer.getClassifier(),
+                outputFileName + App.SUFFIX_CLASSIFIER);
+        SerializationHelper.serializeFilter(trainer.getFilter(), outputFileName + App.SUFFIX_FILTER);
+        Instances header = new Instances(instancesHeader, 0);
+        SerializationHelper.serializeInstances(header, outputFileName + App.SUFFIX_INSTANCEHEADER);
     }
 }
