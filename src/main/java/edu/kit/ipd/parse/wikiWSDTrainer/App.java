@@ -518,19 +518,20 @@ public class App {
      * Save the classifier
      */
     private void save(Trainer trainer, Instances instancesHeader) {
-        if (!trainer.getClass()
-                    .equals(EfficientWikiWSDTrainer.class)) {
-            throw new IllegalArgumentException("Invalid Trainer! Only supports saving of EfficientWikiWSDTrainer.");
-        } else if (!trainer.getClassifier()
-                           .getClass()
-                           .equals(EfficientNaiveBayes.class)) {
-            throw new IllegalArgumentException("Invalid Classifier! Only supports saving of EfficientNaiveBayes.");
-        }
         outputFileName = outputDirectory + outputFileName;
         SerializationHelper.serializeEfficientNaiveBayesClassifier((EfficientNaiveBayes) trainer.getClassifier(),
                 outputFileName + App.SUFFIX_CLASSIFIER);
         SerializationHelper.serializeFilter(trainer.getFilter(), outputFileName + App.SUFFIX_FILTER);
         Instances header = new Instances(instancesHeader, 0);
         SerializationHelper.serializeInstances(header, outputFileName + App.SUFFIX_INSTANCEHEADER);
+    }
+
+    private void saveNative(Trainer trainer, Instances instancesHeader) {
+        outputFileName = outputDirectory + outputFileName;
+        SerializationHelper.serializeEfficientNaiveBayesClassifierNative((EfficientNaiveBayes) trainer.getClassifier(),
+                outputFileName + App.SUFFIX_CLASSIFIER);
+        SerializationHelper.serializeFilterNative(trainer.getFilter(), outputFileName + App.SUFFIX_FILTER);
+        Instances header = new Instances(instancesHeader, 0);
+        SerializationHelper.serializeInstancesNative(header, outputFileName + App.SUFFIX_INSTANCEHEADER);
     }
 }
