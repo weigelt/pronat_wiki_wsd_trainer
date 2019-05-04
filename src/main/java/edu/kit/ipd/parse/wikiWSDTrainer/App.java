@@ -488,6 +488,7 @@ public class App {
                     DataSource source = new DataSource(file.getAbsolutePath());
                     if (data == null) {
                         data = source.getDataSet();
+                        data.setAttributeWeight(1, 10.);
                     } else {
                         Trainer.mergeInstancesToFirst(data, source.getDataSet());
                     }
@@ -524,14 +525,5 @@ public class App {
         SerializationHelper.serializeFilter(trainer.getFilter(), outputFileName + App.SUFFIX_FILTER);
         Instances header = new Instances(instancesHeader, 0);
         SerializationHelper.serializeInstances(header, outputFileName + App.SUFFIX_INSTANCEHEADER);
-    }
-
-    private void saveNative(Trainer trainer, Instances instancesHeader) {
-        outputFileName = outputDirectory + outputFileName;
-        SerializationHelper.serializeEfficientNaiveBayesClassifierNative((EfficientNaiveBayes) trainer.getClassifier(),
-                outputFileName + App.SUFFIX_CLASSIFIER);
-        SerializationHelper.serializeFilterNative(trainer.getFilter(), outputFileName + App.SUFFIX_FILTER);
-        Instances header = new Instances(instancesHeader, 0);
-        SerializationHelper.serializeInstancesNative(header, outputFileName + App.SUFFIX_INSTANCEHEADER);
     }
 }

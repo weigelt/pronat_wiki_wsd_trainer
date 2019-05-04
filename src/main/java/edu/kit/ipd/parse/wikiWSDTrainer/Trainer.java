@@ -53,6 +53,7 @@ public abstract class Trainer {
 
     public Trainer(Classifier classifier, Instances trainingSet) {
         this.trainingSet = trainingSet;
+        this.trainingSet.setAttributeWeight(1, 10.);
         originalClassifier = classifier;
         filter = createPreFilter();
     }

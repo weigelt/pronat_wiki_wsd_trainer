@@ -24,12 +24,14 @@ import weka.core.Instances;
  *
  */
 public class EfficientWikiWSDTrainerTest {
+    private static final String TRAINER_TEST = "TrainerTest";
+
     private static final Logger logger = LoggerFactory.getLogger(EfficientWikiWSDTrainerTest.class);
 
     private static final int LIMIT = 1024 * 4;
 
     private static Instances createTestInstances(ArrayList<Attribute> attributes, int num_classes) {
-        Instances instances = new Instances("WordSenseDisambiguation", attributes, 10);
+        Instances instances = new Instances(TRAINER_TEST, attributes, 10);
         instances.setClassIndex(0);
 
         Random rand = new Random();
@@ -93,7 +95,7 @@ public class EfficientWikiWSDTrainerTest {
         ArrayList<Attribute> attributes = createAttributes();
         int numClasses = 30_000;
         int numInstances = 1_000_000;
-        Instances instances = new Instances("WordSenseDisambiguation", attributes, numInstances);
+        Instances instances = new Instances(TRAINER_TEST, attributes, numInstances);
         instances.setClassIndex(0);
 
         Random rand = new Random();
@@ -162,7 +164,7 @@ public class EfficientWikiWSDTrainerTest {
     public void testClassificator_lowClassCountTrivialAttributes() {
         ArrayList<Attribute> attributes = createAttributes();
         int numClasses = 10;
-        Instances instances = new Instances("WordSenseDisambiguation", attributes, 10);
+        Instances instances = new Instances(TRAINER_TEST, attributes, 10);
         instances.setClassIndex(0);
 
         for (int i = 0; i < EfficientWikiWSDTrainerTest.LIMIT; i++) {

@@ -125,8 +125,7 @@ public class EfficientWikiWSDTrainer extends WikiWSDTrainer {
                 executor.awaitTermination(100, TimeUnit.MINUTES);
                 executor = null;
             } catch (Exception e) {
-                // TODO
-                e.printStackTrace();
+                logger.warning(e.getLocalizedMessage());
             }
         }
     }
