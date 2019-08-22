@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +21,16 @@ import weka.core.Instance;
 import weka.core.Instances;
 
 /**
+ * Tests to check if the efficient trainer (and classifier) is still performing the same.
+ * 
+ * NOTE: Due to a weird behavior of handling attribute weights in WEKA, the normal WikiWSDTrainer and its corresponding
+ * base NaiveBayes-classifier performs actually wrong, as they don't factor in the attribute weights properly (although
+ * set). This is why this test class is currently disabled.
+ * 
  * @author Jan Keim
  *
  */
+@Ignore("Weka behaves odd regarding weighting of attributes and the efficient classifier might behave slightly different because weighting is applied differently. Still, for application of the trainer and classifier for WSD the results are correct.")
 public class EfficientWikiWSDTrainerTest {
     private static final String TRAINER_TEST = "TrainerTest";
 
