@@ -1,8 +1,11 @@
-package edu.kit.ipd.parse.wikiWSDTrainer;
+package edu.kit.ipd.parse.wiki_wsd.trainer;
+
+import java.io.Serial;
 
 public class RandomNullPointerException extends Exception {
 
-	private static final long serialVersionUID = 6591504430585244479L;
+	@Serial
+	private static final long serialVersionUID = -1545260236985256671L;
 
 	public RandomNullPointerException() {
 	}
