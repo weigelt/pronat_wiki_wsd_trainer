@@ -12,14 +12,9 @@
     <name>Wiki WSD Trainer</name>
     <repositories>
         <repository>
-            <id>ipdNexus-releases</id>
+            <id>ipdNexus-all</id>
             <name>IPD-Repository</name>
-            <url>http://bob.ipd.kit.edu/nexus/repository/maven-public-releases</url>
-        </repository>
-        <repository>
-            <id>ipdNexus-snapshots</id>
-            <name>IPD-Repository</name>
-            <url>http://bob.ipd.kit.edu/nexus/repository/maven-public-snapshots</url>
+            <url>https://bob.ipd.kit.edu/nexus/repository/maven-public-all</url>
         </repository>
     </repositories>
 
