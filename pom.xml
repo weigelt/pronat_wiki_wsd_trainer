@@ -10,14 +10,6 @@
     <artifactId>wiki_wsd_trainer</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>Wiki WSD Trainer</name>
-    <repositories>
-        <repository>
-            <id>ipdNexus-all</id>
-            <name>IPD-Repository</name>
-            <url>https://bob.ipd.kit.edu/nexus/repository/maven-public-all</url>
-        </repository>
-    </repositories>
-
     <properties>
         <mainclass>edu.kit.ipd.parse.wiki_wsd.trainer.App</mainclass>
         <args4j.version>2.33</args4j.version>
